@@ -1,5 +1,5 @@
 import { abstract, BuildPlatform } from "../common";
-import { VoidPointer } from "../core";
+import { StaticPointer, VoidPointer } from "../core";
 import { CxxPair } from "../cxxpair";
 import { CxxVector } from "../cxxvector";
 import { mce } from "../mce";
@@ -20,6 +20,7 @@ import {
     uint64_as_float_t,
     uint8_t,
 } from "../nativetype";
+import { procHacker } from "../prochacker";
 import { ActorDefinitionIdentifier, ActorLink, ActorRuntimeID, ActorUniqueID } from "./actor";
 import { AttributeInstanceHandle } from "./attribute";
 import { BlockPos, ChunkPos, Vec2, Vec3 } from "./blockpos";
@@ -301,7 +302,40 @@ export class TakeItemActorPacket extends Packet {
 
 @nativeClass(null)
 export class MoveActorAbsolutePacket extends Packet {
-    // unknown
+    @nativeField(ActorRuntimeID)
+    actorId: ActorRuntimeID;
+    @nativeField(uint8_t)
+    flags: uint8_t;
+    @nativeField(Vec3)
+    pos: Vec3;
+
+    /** Byte of x-rotation(pitch), to convert to normal pitch value divide it by 0.71
+     * @see https://wiki.vg/Bedrock_Protocol#Data_types PlayerLocation */
+    @nativeField(uint8_t)
+    xRot: uint8_t;
+
+    /** Byte of y-rotation(yaw), to convert to normal yaw value divide it by 0.71
+     * @see https://wiki.vg/Bedrock_Protocol#Data_types PlayerLocation */
+    @nativeField(uint8_t)
+    yRot: uint8_t;
+
+    /** Byte of z-rotation(head yaw), to convert to normal yaw value divide it by 0.71
+     * @see https://wiki.vg/Bedrock_Protocol#Data_types PlayerLocation */
+    @nativeField(uint8_t)
+    zRot: uint8_t;
+}
+
+export namespace MoveActorAbsolutePacket {
+    export enum Flags {
+        hasX = 0x1,
+        hasY = 0x2,
+        hasZ = 0x4,
+        hasPitch = 0x8,
+        hasYaw = 0x10,
+        hasHeadYaw = 0x20,
+        onGround = 0x40,
+        teleported = 0x80,
+    }
 }
 
 @nativeClass(null)
@@ -385,6 +419,7 @@ export class TickSyncPacket extends Packet {
     // unknown
 }
 
+/** @deprecated Removed packet, use LevelSoundEventPacket instead. */
 @nativeClass(null)
 export class LevelSoundEventPacketV1 extends Packet {
     // unknown
@@ -803,6 +838,7 @@ export class CraftingDataPacket extends Packet {
     // unknown
 }
 
+/** @deprecated removed */
 @nativeClass(null)
 export class CraftingEventPacket extends Packet {
     @nativeField(uint8_t)
@@ -899,7 +935,7 @@ export class SetPlayerGameTypePacket extends Packet {
     playerGameType: GameType;
 }
 
-@nativeClass(0x2f0)
+@nativeClass(0x2e8)
 export class PlayerListEntry extends AbstractClass {
     @nativeField(ActorUniqueID)
     id: ActorUniqueID;
@@ -924,6 +960,13 @@ export class PlayerListEntry extends AbstractClass {
         return PlayerListEntry.constructWith(player);
     }
 }
+PlayerListEntry.prototype[NativeType.dtor] = procHacker.js("??1PlayerListEntry@@QEAA@XZ", VoidPointer, { this: PlayerListEntry });
+PlayerListEntry.prototype[NativeType.ctor] = procHacker.js("??0PlayerListEntry@@QEAA@XZ", VoidPointer, { this: PlayerListEntry });
+PlayerListEntry.prototype[NativeType.ctor_copy] = function (from) {
+    ConstructPlayerListEntryByUUID(this, from.add(PLAYERLISTENTRY_UUID_OFFSET));
+};
+const PLAYERLISTENTRY_UUID_OFFSET = PlayerListEntry.offsetOf("uuid");
+const ConstructPlayerListEntryByUUID = procHacker.js("??0PlayerListEntry@@QEAA@VUUID@mce@@@Z", VoidPointer, null, PlayerListEntry, StaticPointer);
 
 @nativeClass(null)
 export class PlayerListPacket extends Packet {
@@ -1569,7 +1612,7 @@ export class AvailableActorIdentifiersPacket extends Packet {
     // unknown
 }
 
-/** @deprecated Unused packet, use LevelSoundEventPacket instead. */
+/** @deprecated Removed packet, use LevelSoundEventPacket instead. */
 @nativeClass(null)
 export class LevelSoundEventPacketV2 extends Packet {
     // unknown
@@ -2346,6 +2389,23 @@ export class OpenSignPacket extends Packet {
     // unknown
 }
 
+@nativeClass(null)
+export class AgentAnimationPacket extends Packet {
+    // unknown
+}
+
+@nativeClass(null)
+export class RefreshEntitlementsPacket extends Packet {
+    // unknown
+}
+@nativeClass(null)
+export class PlayerToggleCrafterSlotRequestPacket extends Packet {
+    // unknown
+}
+@nativeClass(null)
+export class SetPlayerInventoryOptionsPacket extends Packet {
+    // unknown
+}
 export const PacketIdToType = {
     0x01: LoginPacket,
     0x02: PlayStatusPacket,
@@ -2548,6 +2608,10 @@ export const PacketIdToType = {
     0x12d: CompressedBiomeDefinitionListPacket,
     0x12e: TrimDataPacket,
     0x12f: OpenSignPacket,
+    0x130: AgentAnimationPacket,
+    0x131: RefreshEntitlementsPacket,
+    0x132: PlayerToggleCrafterSlotRequestPacket,
+    0x133: SetPlayerInventoryOptionsPacket,
 };
 export type PacketIdToType = {
     [key in keyof typeof PacketIdToType]: InstanceType<(typeof PacketIdToType)[key]>;

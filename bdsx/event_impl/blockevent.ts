@@ -87,7 +87,7 @@ export class ChestPairEvent {
 }
 
 function onBlockDestroy(gamemode: GameMode, blockPos: BlockPos, face: number): boolean {
-    const player = gamemode.actor as ServerPlayer;
+    const player = gamemode.actor;
     /********************
      *   History
      * BlockSource::checkBlockDestroyPermissions
@@ -151,7 +151,7 @@ const _onCreativeBlockDestroy = procHacker.hooking(
 )(onCreativeBlockDestroy);
 
 function onBlockDestructionStart(blockEventCoordinator: StaticPointer, player: Player, blockPos: BlockPos, v: uint8_t): void {
-    const event = new BlockDestructionStartEvent(player as ServerPlayer, blockPos);
+    const event = new BlockDestructionStartEvent(player, blockPos);
     events.blockDestructionStart.fire(event);
     decay(blockPos);
     return _onBlockDestructionStart(blockEventCoordinator, event.player, event.blockPos, v);
@@ -202,24 +202,24 @@ const _onBlockPlace = procHacker.hooking(
     Vec3,
 )(onBlockPlace);
 
-function onPistonCheck(this: PistonBlockActor, blockSource: BlockSource, blockPos: BlockPos, uNum1: uint8_t, uNum2: uint8_t): bool_t {
-    const event = new PistonCheckEvent(blockPos, blockSource, this.action, this.getAttachedBlocks(), this.getFacingDir(blockSource));
-    const canceled = events.pistonCheck.fire(event) === CANCEL;
-    decay(this);
-    decay(blockPos);
-    decay(blockSource);
-    if (canceled) return false;
-    else return _onPistonCheck.call(this, event.blockSource, event.blockPos, uNum1, uNum2);
-}
 const _onPistonCheck = procHacker.hooking(
     "?_attachedBlockWalker@PistonBlockActor@@AEAA_NAEAVBlockSource@@AEBVBlockPos@@EE@Z",
     bool_t,
-    { this: PistonBlockActor },
+    null,
+    PistonBlockActor,
     BlockSource,
     BlockPos,
     uint8_t,
     uint8_t,
-)(onPistonCheck);
+)((self, blockSource, blockPos, uNum1, uNum2) => {
+    const event = new PistonCheckEvent(blockPos, blockSource, self.action, self.getAttachedBlocks(), self.getFacingDir(blockSource));
+    const canceled = events.pistonCheck.fire(event) === CANCEL;
+    decay(self);
+    decay(blockPos);
+    decay(blockSource);
+    if (canceled) return false;
+    else return _onPistonCheck(self, event.blockSource, event.blockPos, uNum1, uNum2);
+});
 
 function onPistonMove(this: PistonBlockActor, blockSource: BlockSource): void_t {
     const event = new PistonMoveEvent(this.getPosition(), blockSource, this.action, this.getAttachedBlocks(), this.getFacingDir(blockSource));
