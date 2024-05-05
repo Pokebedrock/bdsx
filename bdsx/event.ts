@@ -30,7 +30,7 @@ import type {
     EntityConsumeTotemEvent,
     EntityCreatedEvent,
     EntityDieEvent,
-    EntityHeathChangeEvent,
+    EntityHealthChangeEvent,
     EntityHurtEvent,
     EntityKnockbackEvent,
     EntitySneakEvent,
@@ -157,7 +157,7 @@ export namespace events {
     /** Cancellable */
     export const entityHurt = new Event<(event: EntityHurtEvent) => void | CANCEL>();
     /** Not cancellable */
-    export const entityHealthChange = new Event<(event: EntityHeathChangeEvent) => void>();
+    export const entityHealthChange = new Event<(event: EntityHealthChangeEvent) => void>();
     /**
      * Not cancellable.
      * it can be occurred multiple times even it already died.
@@ -299,6 +299,8 @@ export namespace events {
      * server console outputs
      */
     export const serverLog = new Event<(log: string, color: Color) => void | CANCEL>();
+
+    export const resourceReload = new Event<() => void>();
 
     ////////////////////////////////////////////////////////
     // Packet events

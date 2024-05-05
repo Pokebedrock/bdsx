@@ -23,6 +23,7 @@ import {
 import { procHacker } from "../prochacker";
 import { ActorDefinitionIdentifier, ActorLink, ActorRuntimeID, ActorUniqueID } from "./actor";
 import { AttributeInstanceHandle } from "./attribute";
+import type { HudElement, HudVisibility } from "./behaviors";
 import { BlockPos, ChunkPos, Vec2, Vec3 } from "./blockpos";
 import { ConnectionRequest, JsonValue } from "./connreq";
 import { CxxOptional } from "./cxxoptional";
@@ -249,6 +250,8 @@ export class LevelSettings extends MantleClass {
 export class StartGamePacket extends Packet {
     @nativeField(LevelSettings)
     readonly settings: LevelSettings;
+    @nativeField(Vec2, 0x490)
+    readonly rot: Vec2;
 }
 @nativeClass(null)
 export class AddPlayerPacket extends Packet {
@@ -459,7 +462,9 @@ export namespace ActorEventPacket {
         Jump = 1,
         HurtAnimation,
         DeathAnimation,
-        ArmSwing,
+        /** @deprecated following the official name */
+        ArmSwing = 4,
+        StartAttack = 4,
         StopAttack,
         TameFail,
         TameSuccess,
@@ -501,8 +506,10 @@ export namespace ActorEventPacket {
         CompleteTrade,
         RemoveLeash,
         ConsumeTotem = 65,
-        PlayerCheckTreasureHunterAchievement,
-        EntitySpawn,
+        /** @deprecated following the official name */
+        PlayerCheckTreasureHunterAchievement = 66,
+        UpdateStructureFeature = 66,
+        EntitySpawn, // by player
         DragonPuke,
         ItemEntityMerge,
         StartSwim,
@@ -511,6 +518,9 @@ export namespace ActorEventPacket {
         AgentSummon,
         ChargedCrossbow,
         Fall,
+        ActorGrowUp,
+        VibrationDetected,
+        DrinkMilk,
     }
 }
 
@@ -987,13 +997,13 @@ export class LegacyTelemetryEventPacket extends Packet {
     // unknown
 }
 
-/** @deprecated Use LegacyTelemetryEventPacket instead, to match to official class name*/
+/** @deprecated Use LegacyTelemetryEventPacket instead, to match the official class name*/
 export const EventPacket = LegacyTelemetryEventPacket;
-/** @deprecated Use LegacyTelemetryEventPacket instead, to match to official class name*/
+/** @deprecated Use LegacyTelemetryEventPacket instead, to match the official class name*/
 export type EventPacket = LegacyTelemetryEventPacket;
-/** @deprecated Use EventPacket instead, to match to official class name*/
+/** @deprecated Use EventPacket instead, to match the official class name*/
 export const TelemetryEventPacket = EventPacket;
-/** @deprecated Use EventPacket instead, to match to official class name*/
+/** @deprecated Use EventPacket instead, to match the official class name*/
 export type TelemetryEventPacket = EventPacket;
 
 @nativeClass(null)
@@ -1009,13 +1019,13 @@ export class ClientboundMapItemDataPacket extends Packet {
     // unknown
 }
 
-/** @deprecated Use ClientboundMapItemDataPacket instead, to match to official class name*/
+/** @deprecated Use ClientboundMapItemDataPacket instead, to match the official class name*/
 export const MapItemDataPacket = ClientboundMapItemDataPacket;
-/** @deprecated Use ClientboundMapItemDataPacket instead, to match to official class name*/
+/** @deprecated Use ClientboundMapItemDataPacket instead, to match the official class name*/
 export type MapItemDataPacket = ClientboundMapItemDataPacket;
-/** @deprecated Use ClientboundMapItemDataPacket instead, to match to official class name*/
+/** @deprecated Use ClientboundMapItemDataPacket instead, to match the official class name*/
 export const ClientboundMapItemData = ClientboundMapItemDataPacket;
-/** @deprecated Use ClientboundMapItemDataPacket instead, to match to official class name*/
+/** @deprecated Use ClientboundMapItemDataPacket instead, to match the official class name*/
 export type ClientboundMapItemData = ClientboundMapItemDataPacket;
 
 @nativeClass(null)
@@ -1033,6 +1043,9 @@ export class ChunkRadiusUpdatedPacket extends Packet {
     // unknown
 }
 
+/**
+ * @deprecated removed
+ */
 @nativeClass(null)
 export class ItemFrameDropItemPacket extends Packet {
     // unknown
@@ -1353,9 +1366,9 @@ export class AutomationClientConnectPacket extends Packet {
     // unknown
 }
 
-/** @deprecated Use AutomationClientConnectPacket instead, to match to official class name*/
+/** @deprecated Use AutomationClientConnectPacket instead, to match the official class name*/
 export const WSConnectPacket = AutomationClientConnectPacket;
-/** @deprecated Use AutomationClientConnectPacket instead, to match to official class name*/
+/** @deprecated Use AutomationClientConnectPacket instead, to match the official class name*/
 export type WSConnectPacket = AutomationClientConnectPacket;
 
 @nativeClass(null)
@@ -1551,9 +1564,9 @@ export class LabTablePacket extends Packet {
 export class UpdateBlockSyncedPacket extends Packet {
     // unknown
 }
-/** @deprecated Use UpdateBlockSyncedPacket instead, to match to official class name*/
+/** @deprecated Use UpdateBlockSyncedPacket instead, to match the official class name*/
 export const UpdateBlockPacketSynced = UpdateBlockSyncedPacket;
-/** @deprecated Use UpdateBlockSyncedPacket instead, to match to official class name*/
+/** @deprecated Use UpdateBlockSyncedPacket instead, to match the official class name*/
 export type UpdateBlockPacketSynced = UpdateBlockSyncedPacket;
 
 @nativeClass(null)
@@ -1632,9 +1645,9 @@ export class BiomeDefinitionListPacket extends Packet {
     @nativeField(CompoundTag)
     nbt: CompoundTag;
 }
-/** @deprecated Use BiomeDefinitionListPacket instead, to match to official class name*/
+/** @deprecated Use BiomeDefinitionListPacket instead, to match the official class name*/
 export const BiomeDefinitionList = BiomeDefinitionListPacket;
-/** @deprecated Use BiomeDefinitionListPacket instead, to match to official class name*/
+/** @deprecated Use BiomeDefinitionListPacket instead, to match the official class name*/
 export type BiomeDefinitionList = BiomeDefinitionListPacket;
 
 @nativeClass(null)
@@ -1670,6 +1683,7 @@ export class LecternUpdatePacket extends Packet {
     dropBook: bool_t;
 }
 
+/** @deprecated removed */
 @nativeClass(null)
 export class RemoveEntityPacket extends Packet {
     // unknown
@@ -1694,9 +1708,9 @@ export class MapCreateLockedCopyPacket extends Packet {
     @nativeField(uint64_as_float_t)
     new: uint64_as_float_t;
 }
-/** @deprecated Use MapCreateLockedCopyPacket instead, to match to official class name*/
+/** @deprecated Use MapCreateLockedCopyPacket instead, to match the official class name*/
 export const MapCreateLockedCopy = MapCreateLockedCopyPacket;
-/** @deprecated Use MapCreateLockedCopyPacket instead, to match to official class name*/
+/** @deprecated Use MapCreateLockedCopyPacket instead, to match the official class name*/
 export type MapCreateLockedCopy = MapCreateLockedCopyPacket;
 
 @nativeClass(null)
@@ -1709,9 +1723,9 @@ export class StructureTemplateDataResponsePacket extends Packet {
     // unknown
 }
 
-/** @deprecated Use StructureTemplateDataResponsePacket instead, to match to official class name*/
+/** @deprecated Use StructureTemplateDataResponsePacket instead, to match the official class name*/
 export const StructureTemplateDataExportPacket = StructureTemplateDataResponsePacket;
-/** @deprecated Use StructureTemplateDataResponsePacket instead, to match to official class name*/
+/** @deprecated Use StructureTemplateDataResponsePacket instead, to match the official class name*/
 export type StructureTemplateDataExportPacket = StructureTemplateDataResponsePacket;
 
 @nativeClass(null)
@@ -1864,7 +1878,6 @@ export namespace PlayerAuthInputPacket {
         DescendScaffolding,
         SneakToggleDown,
         PersistSneak,
-        // 0-24: These are all from IDA, PlayerAuthInputPacket::InputData in 1.14.60.5
         StartSprinting,
         StopSprinting,
         StartSneaking,
@@ -1884,7 +1897,11 @@ export namespace PlayerAuthInputPacket {
         StopCrawling,
         StartFlying,
         StopFlying,
-        AckActorData,
+        AckActorData, // DOC: ClientAckServerData
+        IsInClientPredictedVehicle,
+        PaddingLeft,
+        PaddingRight,
+        INPUT_NUM,
     }
 }
 
@@ -1961,7 +1978,7 @@ ItemStackRequestAction.setResolver(ptr => {
 @nativeClass(null)
 export class ItemStackRequestActionTransferBase extends ItemStackRequestAction {
     getSrc(): ItemStackRequestSlotInfo {
-        abstract();
+        return this.addAs(ItemStackRequestSlotInfo, 0x18);
     }
 }
 
@@ -2137,7 +2154,9 @@ export class ItemComponentPacket extends Packet {
     entries: CxxVector<CxxPair<CxxString, CompoundTag>>;
 }
 
-@nativeClass(null)
+/**
+ * @deprecated removed.
+ */
 export class FilterTextPacket extends Packet {
     // unknown
 }
@@ -2208,12 +2227,13 @@ export class VideoStreamConnect_DEPRECATED extends Packet {
     // unknown
 }
 
+/** @deprecated removed */
 export class AddEntityPacket extends Packet {
     // unknown
 }
-/** @deprecated Use AddEntityPacket instead, to match to official class name*/
+/** @deprecated Use AddEntityPacket instead, to match the official class name*/
 export const AddEntity = AddEntityPacket;
-/** @deprecated Use AddEntityPacket instead, to match to official class name*/
+/** @deprecated Use AddEntityPacket instead, to match the official class name*/
 export type AddEntity = AddEntityPacket;
 
 // export class UpdateBlockProperties extends Packet {
@@ -2398,14 +2418,26 @@ export class AgentAnimationPacket extends Packet {
 export class RefreshEntitlementsPacket extends Packet {
     // unknown
 }
+
 @nativeClass(null)
 export class PlayerToggleCrafterSlotRequestPacket extends Packet {
     // unknown
 }
+
 @nativeClass(null)
 export class SetPlayerInventoryOptionsPacket extends Packet {
     // unknown
 }
+
+@nativeClass(null)
+export class SetHudPacket extends Packet {
+    @nativeField(CxxVector.make(int32_t))
+    elements: CxxVector<HudElement>;
+    @nativeField(int32_t)
+    visibility: HudVisibility;
+}
+
+export namespace SetHudPacket {}
 export const PacketIdToType = {
     0x01: LoginPacket,
     0x02: PlayStatusPacket,
@@ -2533,8 +2565,6 @@ export const PacketIdToType = {
     0x7c: LevelEventGenericPacket,
     0x7d: LecternUpdatePacket,
     // 0x7e: VideoStreamConnect_DEPRECATED,
-    0x7f: AddEntity, // DEPRECATED
-    0x80: RemoveEntityPacket,
     0x81: ClientCacheStatusPacket,
     0x82: OnScreenTextureAnimationPacket,
     0x83: MapCreateLockedCopy,
@@ -2612,6 +2642,7 @@ export const PacketIdToType = {
     0x131: RefreshEntitlementsPacket,
     0x132: PlayerToggleCrafterSlotRequestPacket,
     0x133: SetPlayerInventoryOptionsPacket,
+    0x134: SetHudPacket,
 };
 export type PacketIdToType = {
     [key in keyof typeof PacketIdToType]: InstanceType<(typeof PacketIdToType)[key]>;

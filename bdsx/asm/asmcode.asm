@@ -511,10 +511,10 @@ export def enabledPacket:byte[PACKET_ID_COUNT]
 export def lastSenderNetId:qword
 
 export proc packetRawHook
-    ; dword ptr[rbp+0x180] - packetId
+    ; dword ptr[rbp+0x1A0] - packetId
     mov lastSenderNetId, r14 ; NetworkConnection
 
-    mov edx, dword ptr[rbp+0x180]
+    mov edx, dword ptr[rbp+0x1A0]
     lea rax, enabledPacket
     mov al, byte ptr[rax+rdx]
     unwind
@@ -525,27 +525,28 @@ export proc packetRawHook
     jmp onPacketRaw
  _skipEvent:
     ; rdx - packetId
-    lea rcx, [rbp+0x190] ; packet
+    lea rcx, [rbp+0x1A8] ; packet
     jmp createPacketRaw
 endp
 
 export def packetBeforeOriginal:qword
 export def onPacketBefore:qword
 export proc packetBeforeHook
-    ; dword ptr[rbp+0x180] - packetId
+    ; dword ptr[rbp+0x1A0] - packetId
     stack 28h
-    lea rdx,qword ptr[rbp+0x1E0] ; original code
-    lea rcx,qword ptr[rbp+0x10] ; original code
+    lea rdx,qword ptr[rbp+0x2C0] ; original code
+    lea rcx,qword ptr[rbp+0x48] ; original code
     call packetBeforeOriginal ; original code
     unwind
     lea rcx, enabledPacket
-    mov r8d, dword ptr[rbp+0x180] ; packetId
+    mov r8d, dword ptr[rbp+0x1A0] ; packetId
     movzx ecx, byte ptr[rcx+r8]
     test cl, 0x02
     jz _skipEvent
     mov rcx, rbp
     mov rdx, rsp
     ; r8 - packetId
+    mov [rbp+0x280], 0x1 ; assigns the correct value manually to bypass crashes - 1.20.61
     jmp onPacketBefore
 _skipEvent:
     ret
@@ -556,7 +557,7 @@ export def handlePacket:qword
 export def __guard_dispatch_icall_fptr:qword
 
 export proc packetAfterHook
-    ; dword ptr[rbp+0x180] - packetId
+    ; dword ptr[rbp+0x1A0] - packetId
     stack 28h
 
     ; orignal codes
@@ -566,12 +567,12 @@ export proc packetAfterHook
     call __guard_dispatch_icall_fptr ; ServerNetworkHandler::handle()
 
     lea r10, enabledPacket
-    mov r8d, dword ptr[rbp+0x180] ; packetId
+    mov r8d, dword ptr[rbp+0x1A0] ; packetId
     movzx eax, byte ptr[r10+r8]
     unwind
     test al, 0x04
     jz _skipEvent
-    mov rcx,[rbp+0x190] ; packet
+    mov rcx,[rbp+0x1A8] ; packet
     mov rdx, r14 ; ni
     ; r8 - packetId
     jmp onPacketAfter
@@ -621,8 +622,7 @@ export proc packetSendAllHook
     ; r12 - packet
     ; rbx - ni
 
-    mov rax, r12 ; [r12]: packet.vftable
-    mov rax, [rax] ; temp solution, assembler can't deal with `mov rax, [r12]`
+    mov rax, [r12]
     call [rax+8] ; packet.getId(), just constant return
 
     lea r10, enabledPacket
@@ -645,9 +645,8 @@ _pass:
 
     unwind
     ; original codes
-    ; temp solution, assembler can't deal with `mov rax, [r12]`, or `[r12+0x10]`. anyway rcx == r12
+    mov rax, [r12]
     mov rcx, r12
-    mov rax, [rcx]
     movzx edi, byte ptr[rbx+0xa0]
     movzx esi, byte ptr[rcx+0x10]
     mov rax, qword ptr[rax+0x8]
